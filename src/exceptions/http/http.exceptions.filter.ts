@@ -9,7 +9,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
 
-    console.error(request, exception);
+    console.error('error route:', request.url);
 
     response.status(status).send({
       data: null,

@@ -8,7 +8,7 @@ export class BaseExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    console.error(request, exception);
+    console.error('error route:', request.url);
 
     response.status(HttpStatus.SERVICE_UNAVAILABLE).send({
       data: null,
