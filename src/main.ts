@@ -4,17 +4,18 @@ import { VERSION_NEUTRAL, ValidationPipe, VersioningType } from '@nestjs/common'
 import { TransformInterceptor } from './interceptor/transform/transform.interceptor';
 import { BaseExceptionFilter } from './exceptions/base/base.exceptions.filter';
 import { HttpExceptionFilter } from './exceptions/http/http.exceptions.filter';
+import { WINSTON_LOGGER_TOKEN } from './logger/winston.module';
 import { createInterfaceDocument } from './docs';
-import { LogStream } from './logger/log-stream';
+import { corsOptionsDelegate } from './utils';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 设置路由前缀
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/');
 
   // 全局版本控制
-  app.enableVersioning({ defaultVersion: [VERSION_NEUTRAL, '1'], type: VersioningType.URI });
+  app.enableVersioning({ defaultVersion: [VERSION_NEUTRAL], type: VersioningType.URI });
 
   // 全局拦截器
   app.useGlobalInterceptors(new TransformInterceptor());
@@ -24,6 +25,12 @@ async function bootstrap() {
 
   // 全局字段校验
   app.useGlobalPipes(new ValidationPipe());
+
+  // 全局日志
+  app.useLogger(app.get(WINSTON_LOGGER_TOKEN));
+
+  // CROS
+  app.enableCors(corsOptionsDelegate);
 
   // 创建接口文档
   createInterfaceDocument(app);
