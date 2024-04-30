@@ -11,6 +11,9 @@ import { corsOptionsDelegate } from './utils';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // 全局日志
+  app.useLogger(app.get(WINSTON_LOGGER_TOKEN));
+
   // 设置路由前缀
   app.setGlobalPrefix('api/');
 
@@ -25,9 +28,6 @@ async function bootstrap() {
 
   // 全局字段校验
   app.useGlobalPipes(new ValidationPipe());
-
-  // 全局日志
-  app.useLogger(app.get(WINSTON_LOGGER_TOKEN));
 
   // CROS
   app.enableCors(corsOptionsDelegate);
