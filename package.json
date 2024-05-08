@@ -1,9 +1,8 @@
 {
   "name": "@fs/nest-template",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
-  "author": "",
-  "private": true,
+  "author": "orb",
   "license": "UNLICENSED",
   "scripts": {
     "build": "cross-env RUN_ENV=prod nest build",
