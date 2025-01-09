@@ -1,13 +1,7 @@
-import { ConfigModuleOptions } from '@nestjs/config';
 import { transports, format, LoggerOptions } from 'winston';
 import * as chalk from 'chalk';
-import { loadEnvConfig } from '.';
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+
 import 'winston-daily-rotate-file';
-
-const { MYSQL_CONFIG } = loadEnvConfig();
-
-export const configModuleOptions: ConfigModuleOptions = { isGlobal: true, ignoreEnvFile: true, load: [loadEnvConfig] };
 
 export const winstonModuleOptions: LoggerOptions = {
   level: 'debug',
@@ -40,15 +34,4 @@ export const winstonModuleOptions: LoggerOptions = {
       format: format.json(),
     }),
   ],
-};
-
-export const typeOrmModuleOptions: TypeOrmModuleOptions = {
-  type: 'mysql',
-  host: MYSQL_CONFIG.host,
-  port: MYSQL_CONFIG.port,
-  username: MYSQL_CONFIG.username,
-  password: MYSQL_CONFIG.password,
-  database: MYSQL_CONFIG.database,
-  entities: ['dist/**/*.entity{.ts,.js}'],
-  synchronize: MYSQL_CONFIG.synchronize,
 };
