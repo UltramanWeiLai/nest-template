@@ -1,0 +1,57 @@
+export const BUSINESS_ERROR_CODE = {
+  // 公共错误码
+  COMMON: 10001,
+  // 特殊错误码
+  TOKEN_INVALID: 10002,
+  // 禁止访问
+  ACCESS_FORBIDDEN: 10003,
+  // 权限已禁用
+  PERMISSION_DISABLED: 10004,
+  // 用户已冻结
+  USER_DISABLED: 10005,
+
+  // 参数验证错误
+  PARAM_INVALID: 10010,
+  // 参数缺失
+  PARAM_MISSING: 10011,
+  // 参数类型错误
+  PARAM_TYPE_ERROR: 10012,
+
+  // 认证相关错误
+  UNAUTHORIZED: 10020,
+  // 登录失败
+  LOGIN_FAILED: 10021,
+  // 账号或密码错误
+  INVALID_CREDENTIALS: 10022,
+  // 账号不存在
+  ACCOUNT_NOT_EXIST: 10023,
+  // 账号已存在
+  ACCOUNT_ALREADY_EXIST: 10024,
+
+  // 资源访问错误
+  RESOURCE_NOT_FOUND: 10030,
+  // 资源已存在
+  RESOURCE_ALREADY_EXIST: 10031,
+  // 资源已被占用
+  RESOURCE_OCCUPIED: 10032,
+  // 资源状态错误
+  RESOURCE_STATUS_ERROR: 10033,
+
+  // 操作错误
+  OPERATION_FAILED: 10040,
+  // 操作超时
+  OPERATION_TIMEOUT: 10041,
+  // 操作频率限制
+  OPERATION_RATE_LIMIT: 10042,
+  // 操作不支持
+  OPERATION_NOT_SUPPORTED: 10043,
+
+  // 系统错误
+  SYSTEM_ERROR: 10050,
+  // 服务不可用
+  SERVICE_UNAVAILABLE: 10051,
+  // 数据库错误
+  DATABASE_ERROR: 10052,
+  // 缓存错误
+  CACHE_ERROR: 10053,
+};
