@@ -4,10 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { WinstonModule } from './logger/winston.module';
 import { configModuleOptions, typeOrmModuleOptions, winstonModuleOptions } from './utils';
 
-import { TestModule } from './interface/test/test.module';
-
 @Module({
-  imports: [ConfigModule.forRoot(configModuleOptions), WinstonModule.forRoot(winstonModuleOptions), TypeOrmModule.forRoot(typeOrmModuleOptions), TestModule],
+  imports: [ConfigModule.forRoot(configModuleOptions), WinstonModule.forRoot(winstonModuleOptions), TypeOrmModule.forRoot(typeOrmModuleOptions)],
   controllers: [],
   providers: [],
 })

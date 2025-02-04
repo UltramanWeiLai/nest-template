@@ -33,4 +33,10 @@ export class Log implements LoggerService {
     const time = dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
     this.logger.log('verbose', message, { context, time });
   }
+
+  info(message: any, type: string, user: string, context?: string) {
+    const time = dayjs(Date.now()).format('YYYY-MM-DD HH:mm:ss');
+    this.logger.log('info', message, { context, time });
+    // 日志入库
+  }
 }
