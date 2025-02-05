@@ -45,6 +45,11 @@ export class BusinessException extends HttpException {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.RESOURCE_DISABLED, message });
   }
 
+  // 403 - 用户禁用
+  static throwUserDisabled(message: string = 'User Disabled') {
+    throw new BusinessException({ code: BUSINESS_ERROR_CODE.USER_DISABLED, message });
+  }
+
   // 404 - 未找到
   static throwNotFound(message: string = 'Not Found') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.NOT_FOUND, message });
@@ -58,5 +63,10 @@ export class BusinessException extends HttpException {
   // 409 - 资源已占用
   static throwResourceOccupied(message: string = 'Resource Occupied') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.RESOURCE_OCCUPIED, message });
+  }
+
+  // 409 - 用户已存在
+  static throwUserExists(message: string = 'User Exists') {
+    throw new BusinessException({ code: BUSINESS_ERROR_CODE.ACCOUNT_ALREADY_EXIST, message });
   }
 }

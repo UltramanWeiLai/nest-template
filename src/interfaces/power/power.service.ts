@@ -8,7 +8,7 @@ import { QueryPowerDto } from './dto/query-power.dto';
 import { BusinessException } from '@/exceptions/business/business';
 
 // 权限不存在
-function isPowerExist(power: Power) {
+function isPowerNotFound(power: Power) {
   if (!power) throw BusinessException.throwResourceNotFound('权限不存在');
 }
 // 权限已禁用
@@ -58,7 +58,7 @@ export class PowerService {
   async findOne(id: number) {
     const power = await this.powerRepository.findOneBy({ id });
 
-    isPowerExist(power);
+    isPowerNotFound(power);
     isPowerDisabled(power);
 
     return power;
@@ -68,7 +68,7 @@ export class PowerService {
     const power = await this.powerRepository.findOneBy({ id });
     const { name, action, resourceKey, description } = updatePowerDto;
 
-    isPowerExist(power);
+    isPowerNotFound(power);
     isPowerDisabled(power);
 
     power.name = name;
@@ -83,7 +83,7 @@ export class PowerService {
   async enable(id: number) {
     const power = await this.powerRepository.findOneBy({ id });
 
-    isPowerExist(power);
+    isPowerNotFound(power);
     if (power.state === PowerState.Enable) return '权限已启用';
 
     power.state = PowerState.Enable;
@@ -94,7 +94,7 @@ export class PowerService {
   async disable(id: number) {
     const power = await this.powerRepository.findOneBy({ id });
 
-    isPowerExist(power);
+    isPowerNotFound(power);
     if (power.state === PowerState.Disable) return '权限已禁用';
 
     power.state = PowerState.Disable;
@@ -105,7 +105,7 @@ export class PowerService {
   async delete(id: number) {
     const power = await this.powerRepository.findOneBy({ id });
 
-    isPowerExist(power);
+    isPowerNotFound(power);
     this.powerRepository.delete(id);
 
     return '删除成功';

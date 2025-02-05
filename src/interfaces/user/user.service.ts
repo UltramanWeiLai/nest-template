@@ -1,16 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import axios from 'axios';
-import * as crypto from 'crypto';
 
+import { isEmpty, md5 } from '@/utils';
 import { BusinessException } from '@/exceptions/business/business';
+import { getFeishuAppAccessToken, getFeishuUserAccessInfo, getFeishuUserInfo } from '@/utils';
 import { User } from './entities/user.entity';
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
-import { loadEnvConfig } from '@/utils';
 import { FeishuUser } from './entities/feishu-user.entity';
 import { UpdatePasswordUserDto } from './dto/update-password-user.dto';
 import { RoleUserGroupService } from '../role-user-group/role-user-group.service';
@@ -18,75 +17,17 @@ import { UserUserGroupService } from '../user-user-group/user-user-group.service
 import { RolePowerService } from '../role-power/role-power.service';
 import { PowerService } from '../power/power.service';
 
-const { FEISHU_CONFIG } = loadEnvConfig();
+function isUserNotFound(user: User) {
+  if (!user) throw BusinessException.throwResourceNotFound('用户不存在');
+}
 
-const md5 = (str: string) => {
-  const hash = crypto.createHash('md5');
-  hash.update(str);
-  return hash.digest('hex');
-};
+function isUserDisabled(user: User) {
+  if (user.status === 0) throw BusinessException.throwUserDisabled();
+}
 
-// 获取飞书应用授权失败
-const isFeishuAuthorizationFails = (res: { code: number }, message = '获取飞书应用授权失败') => {
-  if (res.code !== 0) throw new BusinessException({ code: res.code, message });
-};
-
-// 获取飞书应用 access_token
-const getFeishuAppAccessToken = async () => {
-  const { data: res } = await axios.post('https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal', {
-    app_id: FEISHU_CONFIG.appid,
-    app_secret: FEISHU_CONFIG.appsecret,
-  });
-
-  isFeishuAuthorizationFails(res);
-  return res['app_access_token'];
-};
-
-// 获取飞书用户授权信息
-const getFeishuUserAccessInfo = async (code: string, appAccessToken: string) => {
-  const { data: res } = await axios({
-    method: 'POST',
-    url: 'https://open.feishu.cn/open-apis/authen/v1/oidc/access_token',
-    headers: {
-      Authorization: `Bearer ${appAccessToken}`,
-      'Content-Type': 'application/json; charset=utf-8',
-    },
-    data: {
-      grant_type: 'authorization_code',
-      code,
-    },
-  });
-
-  isFeishuAuthorizationFails(res, '获取飞书用户授权失败');
-  return res.data;
-};
-
-// 获取飞书用户信息
-const getFeishuUserInfo = async (userAccessToken: string) => {
-  const { data: res } = await axios({
-    method: 'GET',
-    url: 'https://open.feishu.cn/open-apis/authen/v1/user_info',
-    headers: { Authorization: `Bearer ${userAccessToken}` },
-  });
-
-  isFeishuAuthorizationFails(res, '获取飞书用户信息失败');
-
-  const userInfo = new FeishuUser();
-  userInfo.userId = res.data['user_id'];
-  userInfo.avatarBig = res.data['avatar_big'];
-  userInfo.avatarMiddle = res.data['avatar_middle'];
-  userInfo.avatarThumb = res.data['avatar_thumb'];
-  userInfo.avatarUrl = res.data['avatar_url'];
-  userInfo.email = res.data['email'];
-  userInfo.enName = res.data['en_name'];
-  userInfo.mobile = res.data['mobile'];
-  userInfo.name = res.data['name'];
-  userInfo.openId = res.data['open_id'];
-  userInfo.tenantKey = res.data['tenant_key'];
-  userInfo.unionId = res.data['union_id'];
-
-  return userInfo;
-};
+function isAccessForbidden(flag: boolean) {
+  if (flag) throw BusinessException.throwAccessForbidden();
+}
 
 @Injectable()
 export class UserService {
@@ -108,15 +49,37 @@ export class UserService {
   @Inject(PowerService)
   private readonly powerService: PowerService;
 
-  async login(loginUserDto: LoginUserDto) {
-    const userInfo = await this.userRepository
+  async findById(id: number) {
+    return this.userRepository
       .createQueryBuilder('user')
-      .where('user.username = :username', { username: loginUserDto.username })
+      .where('user.id = :id', { id })
       .andWhere('user.status = :status', { status: 1 })
       .leftJoinAndSelect('user.feishu', 'feishu')
       .getOne();
+  }
 
-    if (!userInfo) throw new BusinessException({ code: 404, message: '用户不存在' });
+  async findByUsername(username: string) {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .where('user.username = :username', { username })
+      .andWhere('user.status = :status', { status: 1 })
+      .leftJoinAndSelect('user.feishu', 'feishu')
+      .getOne();
+  }
+
+  async findByUserId(userId: string) {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .where('user.feishu.userId = :userId', { userId })
+      .andWhere('user.status = :status', { status: 1 })
+      .leftJoinAndSelect('user.feishu', 'feishu')
+      .getOne();
+  }
+
+  async login(loginUserDto: LoginUserDto) {
+    const userInfo = await this.findByUsername(loginUserDto.username);
+
+    isUserNotFound(userInfo);
     if (userInfo.password !== md5(loginUserDto.password)) throw new BusinessException({ code: 403, message: '密码错误' });
 
     const userGroupIds = (await this.userUserGroupService.getUserUserGroups(userInfo.id)).map((item) => item.userGroupId);
@@ -128,14 +91,9 @@ export class UserService {
   }
 
   async bindFeishu(username: string, code: string) {
-    const userInfo = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.username = :username', { username })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    const userInfo = await this.findByUsername(username);
 
-    if (!userInfo) throw new BusinessException({ code: 403, message: 'token 失效请重新登录！' });
+    if (!userInfo) throw BusinessException.throwTokenInvalid();
     if (userInfo.feishu) throw new BusinessException({ code: 403, message: '用户已绑定飞书账号' });
 
     const appAccessToken = await getFeishuAppAccessToken();
@@ -155,12 +113,7 @@ export class UserService {
     const userAccessInfo = await getFeishuUserAccessInfo(code, appAccessToken);
     const feishuUserInfo = await getFeishuUserInfo(userAccessInfo['access_token']);
 
-    const userInfo = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.feishu.userId = :userId', { userId: feishuUserInfo.userId })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    const userInfo = await this.findByUserId(feishuUserInfo.userId);
 
     if (!userInfo) throw new BusinessException({ code: 404, message: '飞书用户对应的用户账号不存在' });
 
@@ -174,7 +127,7 @@ export class UserService {
 
   async register(registerUserDto: RegisterUserDto) {
     const userInfo = await this.userRepository.findOneBy({ username: registerUserDto.username });
-    if (userInfo) throw new BusinessException({ code: 409, message: '用户已存在' });
+    if (userInfo) throw new BusinessException.throwUserExists();
 
     const user = new User();
     user.username = registerUserDto.username;
@@ -186,15 +139,15 @@ export class UserService {
 
   async findAll(queryUserDto: QueryUserDto) {
     const { username = '', name, currPage = 1, pageSize = 10 } = queryUserDto;
-    let qb = await this.userRepository.createQueryBuilder('user').where('user.username like :username', { username: `%${username}%` });
 
-    if (name) qb = qb.andWhere('user.name like :name', { name: `%${name}%` });
+    const qb = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.username like :username', { username: `%${username}%` })
+      .andWhere(':name IS NULL or user.name like :name', { name: isEmpty(name) ? null : `%${name}%` })
+      .leftJoinAndSelect('user.feishu', 'feishu')
+      .orderBy('user.id', 'DESC');
 
-    qb = qb.leftJoinAndSelect('user.feishu', 'feishu').orderBy('user.id', 'DESC');
-
-    const res: any = {};
-    res.currPage = currPage;
-    res.pageSize = pageSize;
+    const res: Record<string, unknown> = { currPage, pageSize };
     res.total = await qb.getCount();
     res.data = await qb
       .skip((currPage - 1) * pageSize)
@@ -205,60 +158,39 @@ export class UserService {
   }
 
   async findOne(id: number) {
-    const data = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.id = :id', { id })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    const data = await this.findById(id);
 
-    if (data == null) throw new BusinessException({ code: 404, message: '用户不存在' });
-
+    isUserNotFound(data);
     return data;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    const data = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.id = :id', { id })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    const data = await this.findById(id);
 
-    if (data == null) throw new BusinessException({ code: 404, message: '用户不存在' });
-    if (data.status === 0) throw new BusinessException({ code: 403, message: '用户已禁用' });
+    isUserNotFound(data);
+    isUserDisabled(data);
     if ('name' in updateUserDto) data.name = updateUserDto.name;
+
     return this.userRepository.save(data);
   }
 
   async updatePassword(id: number, updateUserDto: UpdatePasswordUserDto) {
     const { password } = updateUserDto;
-    const data = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.id = :id', { id })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    const data = await this.userRepository.createQueryBuilder('user').where('user.id = :id', { id }).getOne();
 
-    if (data == null) throw new BusinessException({ code: 404, message: '用户不存在' });
-    if (data.id !== id) throw new BusinessException({ code: 403, message: '权限不足' });
-    if (data.status === 0) throw new BusinessException({ code: 403, message: '用户已禁用' });
+    isUserNotFound(data);
+    isUserDisabled(data);
+    isAccessForbidden(data.id !== id); // 只能修改自己的密码
 
     data.password = md5(password);
-    this.userRepository.save(data);
-    return '修改成功';
+    return this.userRepository.save(data).then(() => '修改成功');
   }
 
   async remove(id: number) {
-    const data = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.id = :id', { id })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    const data = await this.findById(id);
 
-    if (data == null) throw new BusinessException({ code: 404, message: '用户不存在' });
-    if (data.status === 0) throw new BusinessException({ code: 403, message: '用户已禁用' });
+    isUserNotFound(data);
+    isUserDisabled(data);
 
     data.status = 0;
     return this.userRepository.save(data).then(() => '删除成功');

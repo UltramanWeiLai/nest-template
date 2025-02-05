@@ -8,7 +8,7 @@ import { Resource, ResourceState } from './entities/resource.entity';
 import { BusinessException } from '@/exceptions/business/business';
 
 // 资源不存在
-function isResourceExist(resource: Resource) {
+function isResourceNotFound(resource: Resource) {
   if (!resource) throw BusinessException.throwResourceNotFound('资源不存在');
 }
 
@@ -60,7 +60,7 @@ export class ResourceService {
 
   async findOne(id: number) {
     const resource = await this.resourceRepository.findOneBy({ id });
-    isResourceExist(resource);
+    isResourceNotFound(resource);
     return resource;
   }
 
@@ -69,7 +69,7 @@ export class ResourceService {
     const resource = await this.resourceRepository.findOneBy({ id });
     const resourceKey = await this.resourceRepository.findOneBy({ key });
 
-    isResourceExist(resource);
+    isResourceNotFound(resource);
     isResourceOccupied(resourceKey && resourceKey.id !== id);
     isResourceDisabled(resource);
 
@@ -84,7 +84,7 @@ export class ResourceService {
   async enable(id: number, username: string) {
     const resource = await this.resourceRepository.findOneBy({ id });
 
-    isResourceExist(resource);
+    isResourceNotFound(resource);
     if (resource.state === ResourceState.Enable) return '资源已启用';
 
     resource.state = ResourceState.Enable;
@@ -96,7 +96,7 @@ export class ResourceService {
   async disable(id: number, username: string) {
     const resource = await this.resourceRepository.findOneBy({ id });
 
-    isResourceExist(resource);
+    isResourceNotFound(resource);
     if (resource.state === ResourceState.Disable) return '资源已禁用';
 
     resource.state = ResourceState.Disable;
@@ -107,7 +107,7 @@ export class ResourceService {
 
   async delete(id: number) {
     const resource = await this.resourceRepository.findOneBy({ id });
-    isResourceExist(resource);
+    isResourceNotFound(resource);
     return await this.resourceRepository.delete(id);
   }
 }
