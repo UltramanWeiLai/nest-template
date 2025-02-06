@@ -63,6 +63,10 @@ describe('BaseFilter', () => {
       data: null,
       code: businessError.code,
       msg: businessError.message,
+      extra: {
+        path: '/test-url',
+        timestamp: expect.any(String),
+      },
       success: false,
     });
   });
@@ -78,6 +82,10 @@ describe('BaseFilter', () => {
       data: null,
       code: BUSINESS_ERROR_CODE.COMMON,
       msg: errorMessage,
+      extra: {
+        path: '/test-url',
+        timestamp: expect.any(String),
+      },
       success: false,
     });
   });
@@ -96,6 +104,10 @@ describe('BaseFilter', () => {
         data: null,
         code: BUSINESS_ERROR_CODE.ACCESS_FORBIDDEN,
         msg: 'Forbidden',
+        extra: {
+          path: '/test-url',
+          timestamp: expect.any(String),
+        },
         success: false,
       });
     }

@@ -6,13 +6,13 @@ export class QueryUserDto {
   @ApiProperty({ example: 'buck.pan', required: false })
   @IsOptional()
   @IsString()
-  username: string;
+  username?: string;
 
   @ApiProperty({ example: 'buck', required: false })
   @IsOptional()
   @IsString()
   @Length(1, 64)
-  name: string;
+  name?: string;
 
   @ApiProperty({ example: 1, required: false })
   @IsOptional()
