@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, Length, Matches } from 'class-validator';
 
 export class RegisterUserDto {
-  @ApiProperty({ example: 'buck.pan' })
+  @ApiProperty({ example: 'uorb' })
   @IsNotEmpty()
   @IsString()
   @Length(6, 32, { message: '用户名长度必须在6~32之间' })

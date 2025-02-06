@@ -1,5 +1,6 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { BusinessException } from '../business/business';
 
 /**
  * HTTP异常过滤器
@@ -15,15 +16,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const status = exception.getStatus();
 
-    response.status(status).send({
+    const isBusinessException = exception instanceof BusinessException;
+    const status = isBusinessException ? HttpStatus.OK : exception.getStatus();
+    const errorResponse = exception.getResponse();
+
+    const res = {
       data: null,
       code: status,
       extra: { path: request.url, timestamp: new Date().toISOString() },
-      msg: exception.getResponse(),
-      // path: request.url,
+      msg: errorResponse,
       success: false,
-    });
+    };
+
+    if (isBusinessException) {
+      res.code = errorResponse['code'];
+      res.msg = errorResponse['message'];
+    }
+
+    response.status(status).send(res);
   }
 }

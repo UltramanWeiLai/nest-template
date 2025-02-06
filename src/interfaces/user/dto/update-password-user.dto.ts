@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString, Length } from 'class-validator';
 
 export class UpdatePasswordUserDto {
-  @ApiProperty({ example: 'buck.pan' })
+  @ApiProperty({ example: 'uorb' })
   @IsString()
   @Length(6, 64)
   username: string;

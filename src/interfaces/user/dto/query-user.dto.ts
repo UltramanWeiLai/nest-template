@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsOptional, IsString, Length, IsInt, IsPositive } from 'class-validator';
 
 export class QueryUserDto {
-  @ApiProperty({ example: 'buck.pan', required: false })
+  @ApiProperty({ example: 'uorb', required: false })
   @IsOptional()
   @IsString()
   username?: string;
