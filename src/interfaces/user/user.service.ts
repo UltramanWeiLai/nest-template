@@ -130,6 +130,7 @@ export class UserService {
     const roleIds = (await this.roleUserGroupService.getUserGroupsRoles(userGroupIds)).map((item) => item.roleId);
     const powerIds = (await this.rolePowerService.getRolesPower(roleIds)).map((item) => item.powerId);
     const powers = await this.powerService.findByIds(powerIds);
+    Reflect.deleteProperty(userInfo, 'password');
 
     return { ...userInfo, powers };
   }
@@ -154,6 +155,7 @@ export class UserService {
     const feishuUser = await this.feishuUserRepository.findOneBy({ userId: feishuUserInfo.userId });
     if (!feishuUser) await this.feishuUserRepository.save(feishuUserInfo);
     userInfo.feishu = feishuUserInfo;
+    Reflect.deleteProperty(userInfo, 'password');
 
     await this.userRepository.save(userInfo);
     return userInfo;
@@ -178,6 +180,7 @@ export class UserService {
     const roleIds = (await this.roleUserGroupService.getUserGroupsRoles(userGroupIds)).map((item) => item.roleId);
     const powerIds = (await this.rolePowerService.getRolesPower(roleIds)).map((item) => item.powerId);
     const powers = await this.powerService.findByIds(powerIds);
+    Reflect.deleteProperty(userInfo, 'password');
 
     return { ...userInfo, powers };
   }
@@ -222,6 +225,8 @@ export class UserService {
       .take(pageSize)
       .getMany();
 
+    (res.data as object[]).forEach((item) => Reflect.deleteProperty(item, 'password'));
+
     return res;
   }
 
@@ -233,7 +238,7 @@ export class UserService {
    */
   async findOne(id: number) {
     const data = await this.findById(id);
-
+    Reflect.deleteProperty(data, 'password');
     isUserNotFound(data);
     return data;
   }
@@ -252,7 +257,7 @@ export class UserService {
     isUserDisabled(data);
     if ('name' in updateUserDto) data.name = updateUserDto.name;
 
-    return this.userRepository.save(data);
+    return this.userRepository.save(data).then(() => '修改成功');
   }
 
   /**

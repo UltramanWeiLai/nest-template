@@ -1,4 +1,4 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { BusinessException } from '../business/business';
 
@@ -18,6 +18,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const isBusinessException = exception instanceof BusinessException;
+    const isBadRequestException = exception instanceof BadRequestException;
     const status = isBusinessException ? HttpStatus.OK : exception.getStatus();
     const errorResponse = exception.getResponse();
 
@@ -29,10 +30,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       success: false,
     };
 
-    if (isBusinessException) {
-      res.code = errorResponse['code'];
-      res.msg = errorResponse['message'];
-    }
+    if (isBusinessException) res.code = errorResponse['code'];
+    if (isBadRequestException || isBusinessException) res.msg = errorResponse['message'];
 
     response.status(status).send(res);
   }
