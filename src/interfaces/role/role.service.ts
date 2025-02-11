@@ -2,12 +2,14 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Role, RoleState } from './entities/role.entity';
 import { QueryRoleDto } from './dto/query-role.dto';
 import { BusinessException } from '@/exceptions/business/business';
 import { RolePowerService } from '../role-power/role-power.service';
 import { UpdateRolePowerDto } from './dto/update-role-power.dto';
+import { UpdateRoleUserDto } from './dto/update-role-user.dto';
+import { RoleUserService } from '../role-user/role-user.service';
 
 // 角色不存在
 /**
@@ -43,8 +45,14 @@ function isRoleOccupied(flag: Role | boolean) {
  */
 @Injectable()
 export class RoleService {
+  @Inject(RoleUserService) private roleUserService: RoleUserService;
   @Inject(RolePowerService) private rolePowerService: RolePowerService;
   @InjectRepository(Role) private roleRepository: Repository<Role>;
+
+  // 根据角色 ids 获取角色数据
+  async getRoles(roleIds: number[]) {
+    return await this.roleRepository.findBy({ id: In(roleIds) });
+  }
 
   /**
    * 创建新角色
@@ -105,9 +113,10 @@ export class RoleService {
     isRoleNotFound(role);
     isRoleDisabled(role);
 
-    const power = await this.rolePowerService.getRolePower(id);
+    const userIds = (await this.roleUserService.getRoleUsers(id)).map((item) => item.userId);
+    const powerIds = (await this.rolePowerService.getRolePower(id)).map((item) => item.powerId);
 
-    return { ...role, power: power.map((item) => item.powerId) };
+    return { ...role, userIds, powerIds };
   }
 
   /**
@@ -202,5 +211,24 @@ export class RoleService {
     await this.roleRepository.delete(id);
 
     return '删除成功';
+  }
+
+  /**
+   * 更新角色用户
+   * @param {number} id - 角色ID
+   * @param {UpdateRoleUserDto} updateRoleUserDto - 更新角色用户的数据传输对象
+   * @returns {Promise<string>} 返回更新成功消息
+   * @throws {BusinessException} 如果角色不存在或已禁用则抛出异常
+   */
+  async updateUsers(id: number, updateRoleUserDto: UpdateRoleUserDto) {
+    const { user } = updateRoleUserDto;
+    const role = await this.roleRepository.findOneBy({ id });
+
+    isRoleNotFound(role);
+    isRoleDisabled(role);
+
+    await this.roleUserService.roleBindUsers(id, user);
+
+    return '修改用户成功';
   }
 }

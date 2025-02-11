@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { BusinessException } from '@/exceptions/business/business';
 import { isEmpty } from '@/utils';
 
@@ -52,6 +52,11 @@ export class UserGroupService {
   @InjectRepository(UserGroup)
   private readonly userGroupRepository: Repository<UserGroup>;
 
+  // 根据用户组 ids 获取用户组数据
+  async getUserGroups(userGroupIds: number[]) {
+    return await this.userGroupRepository.findBy({ id: In(userGroupIds) });
+  }
+
   /**
    * 创建用户组
    * @param {UserGroup} CreateUserGroupDto - 用户组信息
@@ -74,8 +79,7 @@ export class UserGroupService {
 
     const query = this.userGroupRepository
       .createQueryBuilder('userGroup')
-      .andWhere('userGroup.state = :state', { state: 1 })
-      .andWhere('( :name IS NULL OR userGroup.name LIKE :name )', { name: isEmpty(name) ? null : `%${name}%` })
+      .where('( :name IS NULL OR userGroup.name LIKE :name )', { name: isEmpty(name) ? null : `%${name}%` })
       .orderBy('userGroup.id', 'DESC');
 
     const res: Record<string, unknown> = { currPage, pageSize };

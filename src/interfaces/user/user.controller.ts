@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Inject, UseGuards, Req, Query } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Request } from 'express';
+import { createHash } from 'crypto';
+
 import { Log } from '@/logger/log';
 import { WINSTON_LOGGER_TOKEN } from '@/logger/winston.module';
 import { LoginGuard } from '@/guard/login/login-check.guard';
-import { Request } from 'express';
-import { createHash } from 'crypto';
+import { BusinessException } from '@/exceptions/business/business';
 
 import { UserService } from './user.service';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -14,7 +16,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { LoginFeishuUserDto } from './dto/login-feishu-user.dto';
 import { UpdatePasswordUserDto } from './dto/update-password-user.dto';
-import { BusinessException } from '@/exceptions/business/business';
+import { SetUserRoleDto } from './dto/set-user-role.dto';
+import { SetUserGroupDto } from './dto/set-user-group.dto';
 
 @ApiTags('用户')
 @Controller('user')
@@ -114,6 +117,38 @@ export class UserController {
     if ((request as any).username !== updateUserDto.username) throw BusinessException.throwAccessForbidden();
 
     return this.userService.updatePassword(+id, updateUserDto);
+  }
+
+  @ApiOperation({ summary: '设置用户角色' })
+  @Patch('role/:id')
+  @UseGuards(LoginGuard)
+  setUserRole(@Req() request: Request, @Param('id') id: string, @Body() setUserRoleDto: SetUserRoleDto) {
+    this.logger.info(`设置用户角色: ${JSON.stringify(setUserRoleDto)}`, 'setUserRole', (request as any).username, 'UserService');
+    return this.userService.setUserRole(+id, setUserRoleDto);
+  }
+
+  @ApiOperation({ summary: '设置用户组' })
+  @Patch('group/:id')
+  @UseGuards(LoginGuard)
+  setUserGroup(@Req() request: Request, @Param('id') id: string, @Body() setUserGroupDto: SetUserGroupDto) {
+    this.logger.info(`设置用户组: ${JSON.stringify(setUserGroupDto)}`, 'setUserGroup', (request as any).username, 'UserService');
+    return this.userService.setUserGroup(+id, setUserGroupDto);
+  }
+
+  @ApiOperation({ summary: '启用用户' })
+  @Patch('enable/:id')
+  @UseGuards(LoginGuard)
+  enable(@Req() request: Request, @Param('id') id: string) {
+    this.logger.info(`启用用户: ${id}`, 'enable', (request as any).username, 'UserService');
+    return this.userService.enable(+id);
+  }
+
+  @ApiOperation({ summary: '禁用用户' })
+  @Patch('disable/:id')
+  @UseGuards(LoginGuard)
+  disable(@Req() request: Request, @Param('id') id: string) {
+    this.logger.info(`禁用用户: ${id}`, 'disable', (request as any).username, 'UserService');
+    return this.userService.disable(+id);
   }
 
   @ApiOperation({ summary: '删除用户' })

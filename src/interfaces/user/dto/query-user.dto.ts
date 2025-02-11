@@ -14,6 +14,18 @@ export class QueryUserDto {
   @Length(1, 64)
   name?: string;
 
+  @ApiProperty({ example: '1234567890@qq.com', required: false })
+  @IsOptional()
+  @IsString()
+  @Length(1, 255)
+  email?: string;
+
+  @ApiProperty({ example: '1234567890', required: false })
+  @IsOptional()
+  @IsString()
+  @Length(1, 64)
+  phone?: string;
+
   @ApiProperty({ example: 1, required: false })
   @IsOptional()
   @Type(() => Number)

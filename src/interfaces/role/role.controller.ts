@@ -9,12 +9,15 @@ import { LoginGuard } from '@/guard/login/login-check.guard';
 import { QueryRoleDto } from './dto/query-role.dto';
 import { Request } from 'express';
 import { UpdateRolePowerDto } from './dto/update-role-power.dto';
+import { UpdateRoleUserDto } from './dto/update-role-user.dto';
+import { RoleUserService } from '../role-user/role-user.service';
 
 @ApiTags('角色')
 @Controller('role')
 @UseGuards(LoginGuard)
 export class RoleController {
   @Inject(RoleService) private readonly roleService: RoleService;
+  @Inject(RoleUserService) private readonly roleUserService: RoleUserService;
   @Inject(WINSTON_LOGGER_TOKEN) private logger: Log;
 
   @ApiOperation({ summary: '新增角色' })
@@ -55,6 +58,14 @@ export class RoleController {
     this.logger.info(`修改角色权限: ${id} ${JSON.stringify(updateRolePowerDto)}`, 'updatePower', (request as any).username, 'RoleController');
 
     return this.roleService.updatePower(+id, updateRolePowerDto); // , (request as any).username
+  }
+
+  @ApiOperation({ summary: '修改角色用户' })
+  @Patch('user/:id')
+  updateUsers(@Req() request: Request, @Param('id') id: string, @Body() updateRoleUserDto: UpdateRoleUserDto) {
+    this.logger.info(`修改角色用户: ${id} ${JSON.stringify(updateRoleUserDto)}`, 'updateUsers', (request as any).username, 'RoleController');
+
+    return this.roleService.updateUsers(+id, updateRoleUserDto);
   }
 
   @ApiOperation({ summary: '启用角色' })

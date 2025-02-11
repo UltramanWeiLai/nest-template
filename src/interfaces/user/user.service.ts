@@ -5,17 +5,25 @@ import { Repository } from 'typeorm';
 import { isEmpty, md5 } from '@/utils';
 import { BusinessException } from '@/exceptions/business/business';
 import { getFeishuAppAccessToken, getFeishuUserAccessInfo, getFeishuUserInfo } from '@/utils';
+
 import { User } from './entities/user.entity';
+import { FeishuUser } from './entities/feishu-user.entity';
+
 import { LoginUserDto } from './dto/login-user.dto';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
-import { FeishuUser } from './entities/feishu-user.entity';
 import { UpdatePasswordUserDto } from './dto/update-password-user.dto';
+import { SetUserGroupDto } from './dto/set-user-group.dto';
+import { SetUserRoleDto } from './dto/set-user-role.dto';
+
 import { RoleUserGroupService } from '../role-user-group/role-user-group.service';
 import { UserUserGroupService } from '../user-user-group/user-user-group.service';
 import { RolePowerService } from '../role-power/role-power.service';
 import { PowerService } from '../power/power.service';
+import { RoleUserService } from '../role-user/role-user.service';
+import { RoleService } from '../role/role.service';
+import { UserGroupService } from '../user-group/user-group.service';
 
 /**
  * 检查用户是否不存在
@@ -32,7 +40,7 @@ function isUserNotFound(user: User) {
  * @throws {BusinessException} 如果用户已禁用则抛出异常
  */
 function isUserDisabled(user: User) {
-  if (user.status === 0) throw BusinessException.throwUserDisabled();
+  if (user.state === 0) throw BusinessException.throwUserDisabled();
 }
 
 /**
@@ -60,14 +68,23 @@ export class UserService {
   @InjectRepository(FeishuUser)
   private readonly feishuUserRepository: Repository<FeishuUser>;
 
-  @Inject(RoleUserGroupService)
-  private readonly roleUserGroupService: RoleUserGroupService;
+  @Inject(RoleService)
+  private readonly roleService: RoleService;
 
-  @Inject(UserUserGroupService)
-  private readonly userUserGroupService: UserUserGroupService;
+  @Inject(RoleUserService)
+  private readonly roleUserService: RoleUserService;
 
   @Inject(RolePowerService)
   private readonly rolePowerService: RolePowerService;
+
+  @Inject(RoleUserGroupService)
+  private readonly roleUserGroupService: RoleUserGroupService;
+
+  @Inject(UserGroupService)
+  private readonly userGroupService: UserGroupService;
+
+  @Inject(UserUserGroupService)
+  private readonly userUserGroupService: UserUserGroupService;
 
   @Inject(PowerService)
   private readonly powerService: PowerService;
@@ -78,12 +95,7 @@ export class UserService {
    * @returns {Promise<User>} 返回用户信息，包含飞书账号信息
    */
   async findById(id: number) {
-    return this.userRepository
-      .createQueryBuilder('user')
-      .where('user.id = :id', { id })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    return this.userRepository.createQueryBuilder('user').where('user.id = :id', { id }).leftJoinAndSelect('user.feishu', 'feishu').getOne();
   }
 
   /**
@@ -92,12 +104,7 @@ export class UserService {
    * @returns {Promise<User>} 返回用户信息，包含飞书账号信息
    */
   async findByUsername(username: string) {
-    return this.userRepository
-      .createQueryBuilder('user')
-      .where('user.username = :username', { username })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    return this.userRepository.createQueryBuilder('user').where('user.username = :username', { username }).leftJoinAndSelect('user.feishu', 'feishu').getOne();
   }
 
   /**
@@ -106,12 +113,37 @@ export class UserService {
    * @returns {Promise<User>} 返回用户信息，包含飞书账号信息
    */
   async findByUserId(userId: string) {
-    return this.userRepository
-      .createQueryBuilder('user')
-      .where('user.feishu.userId = :userId', { userId })
-      .andWhere('user.status = :status', { status: 1 })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .getOne();
+    return this.userRepository.createQueryBuilder('user').where('user.feishu.userId = :userId', { userId }).leftJoinAndSelect('user.feishu', 'feishu').getOne();
+  }
+
+  /**
+   * 获取用户的权限、角色和用户组信息
+   * @param {number} userId - 用户ID
+   * @returns {Promise<{ powers: Power[]; roles: Role[]; userGroups: UserGroup[] }>} 返回用户的权限、角色和用户组信息
+   */
+  private async getUserPermissionInfo(userId: number) {
+    const userRoles = await this.roleUserService.getUserRoles(userId);
+    const userRoleIds = userRoles.map((item) => item.roleId);
+
+    const userGroups = await this.userUserGroupService.getUserUserGroups(userId);
+    const userGroupIds = userGroups.map((item) => item.userGroupId);
+
+    const userGroupRoles = await this.roleUserGroupService.getUserGroupsRoles(userGroupIds);
+    const userGroupRoleIds = userGroupRoles.map((item) => item.roleId);
+
+    const roleIds = userRoleIds.concat(userGroupRoleIds);
+    const powerIds = (await this.rolePowerService.getRolesPower(roleIds)).map((item) => item.powerId);
+    const roles = await this.roleService.getRoles(roleIds);
+    const powers = await this.powerService.findByIds(powerIds);
+    const groups = await this.userGroupService.getUserGroups(userGroupIds);
+
+    return {
+      roles,
+      userRoleIds,
+      powers,
+      groups,
+      userGroupRoleIds,
+    };
   }
 
   /**
@@ -124,15 +156,13 @@ export class UserService {
     const userInfo = await this.findByUsername(loginUserDto.username);
 
     isUserNotFound(userInfo);
+    isUserDisabled(userInfo);
     if (userInfo.password !== md5(loginUserDto.password)) throw new BusinessException({ code: 403, message: '密码错误' });
 
-    const userGroupIds = (await this.userUserGroupService.getUserUserGroups(userInfo.id)).map((item) => item.userGroupId);
-    const roleIds = (await this.roleUserGroupService.getUserGroupsRoles(userGroupIds)).map((item) => item.roleId);
-    const powerIds = (await this.rolePowerService.getRolesPower(roleIds)).map((item) => item.powerId);
-    const powers = await this.powerService.findByIds(powerIds);
+    const userPermissionInfo = await this.getUserPermissionInfo(userInfo.id);
     Reflect.deleteProperty(userInfo, 'password');
 
-    return { ...userInfo, powers };
+    return { ...userInfo, ...userPermissionInfo };
   }
 
   /**
@@ -145,7 +175,8 @@ export class UserService {
   async bindFeishu(username: string, code: string) {
     const userInfo = await this.findByUsername(username);
 
-    if (!userInfo) throw BusinessException.throwTokenInvalid();
+    isUserNotFound(userInfo);
+    isUserDisabled(userInfo);
     if (userInfo.feishu) throw new BusinessException({ code: 403, message: '用户已绑定飞书账号' });
 
     const appAccessToken = await getFeishuAppAccessToken();
@@ -175,14 +206,12 @@ export class UserService {
     const userInfo = await this.findByUserId(feishuUserInfo.userId);
 
     if (!userInfo) throw new BusinessException({ code: 404, message: '飞书用户对应的用户账号不存在' });
+    isUserDisabled(userInfo);
 
-    const userGroupIds = (await this.userUserGroupService.getUserUserGroups(userInfo.id)).map((item) => item.userGroupId);
-    const roleIds = (await this.roleUserGroupService.getUserGroupsRoles(userGroupIds)).map((item) => item.roleId);
-    const powerIds = (await this.rolePowerService.getRolesPower(roleIds)).map((item) => item.powerId);
-    const powers = await this.powerService.findByIds(powerIds);
+    const userPermissionInfo = await this.getUserPermissionInfo(userInfo.id);
     Reflect.deleteProperty(userInfo, 'password');
 
-    return { ...userInfo, powers };
+    return { ...userInfo, ...userPermissionInfo };
   }
 
   /**
@@ -198,6 +227,9 @@ export class UserService {
     const user = new User();
     user.username = registerUserDto.username;
     user.password = md5(registerUserDto.password);
+    if ('name' in registerUserDto) user.name = registerUserDto.name;
+    if ('email' in registerUserDto) user.email = registerUserDto.email;
+    if ('phone' in registerUserDto) user.phone = registerUserDto.phone;
 
     await this.userRepository.save(user);
     return '注册成功';
@@ -209,12 +241,14 @@ export class UserService {
    * @returns {Promise<Record<string, unknown>>} 返回分页的用户列表
    */
   async findAll(queryUserDto: QueryUserDto) {
-    const { username = '', name, currPage = 1, pageSize = 10 } = queryUserDto;
+    const { username = '', name, email, phone, currPage = 1, pageSize = 10 } = queryUserDto;
 
     const qb = await this.userRepository
       .createQueryBuilder('user')
       .where('user.username like :username', { username: `%${username}%` })
       .andWhere(':name IS NULL or user.name like :name', { name: isEmpty(name) ? null : `%${name}%` })
+      .andWhere(':email IS NULL or user.email like :email', { email: isEmpty(email) ? null : `%${email}%` })
+      .andWhere(':phone IS NULL or user.phone like :phone', { phone: isEmpty(phone) ? null : `%${phone}%` })
       .leftJoinAndSelect('user.feishu', 'feishu')
       .orderBy('user.id', 'DESC');
 
@@ -237,10 +271,11 @@ export class UserService {
    * @throws {BusinessException} 当用户不存在时抛出异常
    */
   async findOne(id: number) {
-    const data = await this.findById(id);
-    Reflect.deleteProperty(data, 'password');
-    isUserNotFound(data);
-    return data;
+    const userInfo = await this.findById(id);
+    isUserNotFound(userInfo);
+    const userPermissionInfo = await this.getUserPermissionInfo(userInfo.id);
+    Reflect.deleteProperty(userInfo, 'password');
+    return { ...userInfo, ...userPermissionInfo };
   }
 
   /**
@@ -256,6 +291,9 @@ export class UserService {
     isUserNotFound(data);
     isUserDisabled(data);
     if ('name' in updateUserDto) data.name = updateUserDto.name;
+    if ('email' in updateUserDto) data.email = updateUserDto.email;
+    if ('phone' in updateUserDto) data.phone = updateUserDto.phone;
+    if ('avatar' in updateUserDto) data.avatar = updateUserDto.avatar;
 
     return this.userRepository.save(data).then(() => '修改成功');
   }
@@ -280,6 +318,66 @@ export class UserService {
   }
 
   /**
+   * 设置用户角色
+   * @param {number} id - 用户ID
+   * @param {SetUserRoleDto} setUserRoleDto - 设置角色DTO
+   * @returns {Promise<string>} 返回设置成功消息
+   * @throws {BusinessException} 当用户不存在或已禁用时抛出异常
+   */
+  async setUserRole(id: number, setUserRoleDto: SetUserRoleDto) {
+    const data = await this.findById(id);
+
+    isUserNotFound(data);
+    isUserDisabled(data);
+
+    await this.roleUserService.userBindRoles(id, setUserRoleDto.role);
+    return '设置成功';
+  }
+
+  /**
+   * 设置用户用户组
+   * @param {number} id - 用户ID
+   * @param {SetUserGroupDto} setUserGroupDto - 设置用户组DTO
+   * @returns {Promise<string>} 返回设置成功消息
+   * @throws {BusinessException} 当用户不存在或已禁用时抛出异常
+   */
+  async setUserGroup(id: number, setUserGroupDto: SetUserGroupDto) {
+    const data = await this.findById(id);
+
+    isUserNotFound(data);
+    isUserDisabled(data);
+
+    await this.userUserGroupService.userBindUserGroups(id, setUserGroupDto.group);
+    return '设置成功';
+  }
+
+  /**
+   * 启用用户
+   * @param {number} id - 用户ID
+   * @returns {Promise<string>} 返回启用成功消息
+   * @throws {BusinessException} 当用户不存在时抛出异常
+   */
+  async enable(id: number) {
+    const data = await this.findById(id);
+    isUserNotFound(data);
+    data.state = 1;
+    return this.userRepository.save(data).then(() => '启用成功');
+  }
+
+  /**
+   * 禁用用户
+   * @param {number} id - 用户ID
+   * @returns {Promise<string>} 返回禁用成功消息
+   * @throws {BusinessException} 当用户不存在时抛出异常
+   */
+  async disable(id: number) {
+    const data = await this.findById(id);
+    isUserNotFound(data);
+    data.state = 0;
+    return this.userRepository.save(data).then(() => '禁用成功');
+  }
+
+  /**
    * 删除用户（软删除）
    * @param {number} id - 用户ID
    * @returns {Promise<string>} 返回删除成功消息
@@ -289,9 +387,8 @@ export class UserService {
     const data = await this.findById(id);
 
     isUserNotFound(data);
-    isUserDisabled(data);
+    await this.userRepository.delete(id);
 
-    data.status = 0;
-    return this.userRepository.save(data).then(() => '删除成功');
+    return '删除成功';
   }
 }

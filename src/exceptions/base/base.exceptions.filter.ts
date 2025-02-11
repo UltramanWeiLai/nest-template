@@ -22,6 +22,7 @@ export class BaseExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    console.log('exception:', exception);
     const status = exception.getStatus();
 
     if (exception instanceof BusinessException) {

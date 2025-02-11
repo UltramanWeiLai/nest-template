@@ -3,6 +3,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { FeishuUser } from './feishu-user.entity';
 
+export enum UserState {
+  Enable = 1, // 启用
+  Disable = 0, // 禁用
+}
+
 @Entity()
 export class User {
   @PrimaryGeneratedColumn({
@@ -37,6 +42,30 @@ export class User {
   })
   name: string;
 
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    comment: '邮箱',
+  })
+  email: string;
+
+  @Column({
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+    comment: '手机号',
+  })
+  phone: string;
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+    comment: '头像',
+  })
+  avatar: string;
+
   @CreateDateColumn({
     name: 'create_time',
     type: 'datetime',
@@ -58,9 +87,9 @@ export class User {
     type: 'int',
     unsigned: true,
     nullable: false,
-    default: 1,
+    default: UserState.Enable,
   })
-  status: number;
+  state: number;
 
   @JoinColumn({ name: 'user_id' })
   @ManyToOne(() => FeishuUser)
