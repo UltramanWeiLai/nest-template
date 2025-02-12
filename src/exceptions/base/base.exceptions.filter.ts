@@ -23,7 +23,7 @@ export class BaseExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
     console.log('exception:', exception);
-    const status = exception.getStatus();
+    const status = exception?.getStatus?.() || HttpStatus.INTERNAL_SERVER_ERROR;
 
     if (exception instanceof BusinessException) {
       const error = exception.getResponse();
@@ -39,7 +39,7 @@ export class BaseExceptionFilter implements ExceptionFilter {
     response.status(status).send({
       data: null,
       code: status,
-      msg: exception.getResponse(),
+      msg: exception?.getResponse?.() || '服务器错误',
       extra: { path: request.url, timestamp: new Date().toISOString() },
       success: false,
     });

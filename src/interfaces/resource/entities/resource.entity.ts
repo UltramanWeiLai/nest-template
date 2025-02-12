@@ -24,7 +24,7 @@ export class Resource {
 
   @Column({
     type: 'varchar',
-    length: 128,
+    length: 255,
     nullable: false,
     comment: '资源 key',
   })

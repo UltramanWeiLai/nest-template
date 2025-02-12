@@ -10,6 +10,8 @@ import { RolePowerService } from '../role-power/role-power.service';
 import { UpdateRolePowerDto } from './dto/update-role-power.dto';
 import { UpdateRoleUserDto } from './dto/update-role-user.dto';
 import { RoleUserService } from '../role-user/role-user.service';
+import { UpdateRoleUserGroupDto } from './dto/update-role-user-group.dto';
+import { RoleUserGroupService } from '../role-user-group/role-user-group.service';
 
 // 角色不存在
 /**
@@ -45,9 +47,10 @@ function isRoleOccupied(flag: Role | boolean) {
  */
 @Injectable()
 export class RoleService {
+  @InjectRepository(Role) private roleRepository: Repository<Role>;
   @Inject(RoleUserService) private roleUserService: RoleUserService;
   @Inject(RolePowerService) private rolePowerService: RolePowerService;
-  @InjectRepository(Role) private roleRepository: Repository<Role>;
+  @Inject(RoleUserGroupService) private roleUserGroupService: RoleUserGroupService;
 
   // 根据角色 ids 获取角色数据
   async getRoles(roleIds: number[]) {
@@ -115,8 +118,9 @@ export class RoleService {
 
     const userIds = (await this.roleUserService.getRoleUsers(id)).map((item) => item.userId);
     const powerIds = (await this.rolePowerService.getRolePower(id)).map((item) => item.powerId);
+    const userGroupIds = (await this.roleUserGroupService.getRoleUserGroups(id)).map((item) => item.userGroupId);
 
-    return { ...role, userIds, powerIds };
+    return { ...role, userIds, powerIds, userGroupIds };
   }
 
   /**
@@ -162,6 +166,44 @@ export class RoleService {
     this.rolePowerService.roleBindPowers(id, power);
 
     return '修改权限成功';
+  }
+
+  /**
+   * 更新角色用户
+   * @param {number} id - 角色ID
+   * @param {UpdateRoleUserDto} updateRoleUserDto - 更新角色用户的数据传输对象
+   * @returns {Promise<string>} 返回更新成功消息
+   * @throws {BusinessException} 如果角色不存在或已禁用则抛出异常
+   */
+  async updateUsers(id: number, updateRoleUserDto: UpdateRoleUserDto) {
+    const { user } = updateRoleUserDto;
+    const role = await this.roleRepository.findOneBy({ id });
+
+    isRoleNotFound(role);
+    isRoleDisabled(role);
+
+    await this.roleUserService.roleBindUsers(id, user);
+
+    return '修改用户成功';
+  }
+
+  /**
+   * 更新角色用户组
+   * @param {number} id - 角色ID组
+   * @param {UpdateRoleUserDto} updateRoleUserDto - 更新角色用户组的数据传输对象
+   * @returns {Promise<string>} 返回更新成功消息
+   * @throws {BusinessException} 如果角色不存在或已禁用则抛出异常
+   */
+  async updateUserGroups(id: number, updateRoleUserGroupDto: UpdateRoleUserGroupDto) {
+    const { group } = updateRoleUserGroupDto;
+    const role = await this.roleRepository.findOneBy({ id });
+
+    isRoleNotFound(role);
+    isRoleDisabled(role);
+
+    await this.roleUserGroupService.roleBindUserGroups(id, group);
+
+    return '修改用户组成功';
   }
 
   /**
@@ -211,24 +253,5 @@ export class RoleService {
     await this.roleRepository.delete(id);
 
     return '删除成功';
-  }
-
-  /**
-   * 更新角色用户
-   * @param {number} id - 角色ID
-   * @param {UpdateRoleUserDto} updateRoleUserDto - 更新角色用户的数据传输对象
-   * @returns {Promise<string>} 返回更新成功消息
-   * @throws {BusinessException} 如果角色不存在或已禁用则抛出异常
-   */
-  async updateUsers(id: number, updateRoleUserDto: UpdateRoleUserDto) {
-    const { user } = updateRoleUserDto;
-    const role = await this.roleRepository.findOneBy({ id });
-
-    isRoleNotFound(role);
-    isRoleDisabled(role);
-
-    await this.roleUserService.roleBindUsers(id, user);
-
-    return '修改用户成功';
   }
 }
