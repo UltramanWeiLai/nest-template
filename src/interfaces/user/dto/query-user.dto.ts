@@ -11,19 +11,19 @@ export class QueryUserDto {
   @ApiProperty({ example: 'buck', required: false })
   @IsOptional()
   @IsString()
-  @Length(1, 64)
+  @Length(0, 64)
   name?: string;
 
   @ApiProperty({ example: '1234567890@qq.com', required: false })
   @IsOptional()
   @IsString()
-  @Length(1, 255)
+  @Length(0, 255)
   email?: string;
 
   @ApiProperty({ example: '1234567890', required: false })
   @IsOptional()
   @IsString()
-  @Length(1, 64)
+  @Length(0, 64)
   phone?: string;
 
   @ApiProperty({ example: 1, required: false })

@@ -36,7 +36,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Forbidden'] - 错误信息
    * @throws {BusinessException} 抛出禁止访问异常
    */
-  static throwForbidden(message: string = 'Forbidden') {
+  static throwForbidden(message = 'Forbidden') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.ACCESS_FORBIDDEN, message });
   }
 
@@ -46,7 +46,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Unauthorized'] - 错误信息
    * @throws {BusinessException} 抛出未授权异常
    */
-  static throwUnauthorized(message: string = 'Unauthorized') {
+  static throwUnauthorized(message = 'Unauthorized') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.UNAUTHORIZED, message });
   }
 
@@ -56,7 +56,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Token Invalid'] - 错误信息
    * @throws {BusinessException} 抛出令牌无效异常
    */
-  static throwTokenInvalid(message: string = 'Token Invalid') {
+  static throwTokenInvalid(message = 'Token Invalid') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.TOKEN_INVALID, message });
   }
 
@@ -66,7 +66,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Access Forbidden'] - 错误信息
    * @throws {BusinessException} 抛出访问禁止异常
    */
-  static throwAccessForbidden(message: string = 'Access Forbidden') {
+  static throwAccessForbidden(message = 'Access Forbidden') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.ACCESS_FORBIDDEN, message });
   }
 
@@ -76,7 +76,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Permission Disabled'] - 错误信息
    * @throws {BusinessException} 抛出权限禁用异常
    */
-  static throwPermissionDisabled(message: string = 'Permission Disabled') {
+  static throwPermissionDisabled(message = 'Permission Disabled') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.PERMISSION_DISABLED, message });
   }
 
@@ -86,7 +86,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Resource Disabled'] - 错误信息
    * @throws {BusinessException} 抛出资源禁用异常
    */
-  static throwResourceDisabled(message: string = 'Resource Disabled') {
+  static throwResourceDisabled(message = 'Resource Disabled') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.RESOURCE_DISABLED, message });
   }
 
@@ -96,7 +96,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='User Disabled'] - 错误信息
    * @throws {BusinessException} 抛出用户禁用异常
    */
-  static throwUserDisabled(message: string = 'User Disabled') {
+  static throwUserDisabled(message = 'User Disabled') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.USER_DISABLED, message });
   }
 
@@ -106,7 +106,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Not Found'] - 错误信息
    * @throws {BusinessException} 抛出未找到异常
    */
-  static throwNotFound(message: string = 'Not Found') {
+  static throwNotFound(message = 'Not Found') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.NOT_FOUND, message });
   }
 
@@ -116,7 +116,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Resource Not Found'] - 错误信息
    * @throws {BusinessException} 抛出资源不存在异常
    */
-  static throwResourceNotFound(message: string = 'Resource Not Found') {
+  static throwResourceNotFound(message = 'Resource Not Found') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.RESOURCE_NOT_FOUND, message });
   }
 
@@ -126,7 +126,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='Resource Occupied'] - 错误信息
    * @throws {BusinessException} 抛出资源已占用异常
    */
-  static throwResourceOccupied(message: string = 'Resource Occupied') {
+  static throwResourceOccupied(message = 'Resource Occupied') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.RESOURCE_OCCUPIED, message });
   }
 
@@ -136,7 +136,7 @@ export class BusinessException extends HttpException {
    * @param {string} [message='User Exists'] - 错误信息
    * @throws {BusinessException} 抛出用户已存在异常
    */
-  static throwUserExists(message: string = 'User Exists') {
+  static throwUserExists(message = 'User Exists') {
     throw new BusinessException({ code: BUSINESS_ERROR_CODE.ACCOUNT_ALREADY_EXIST, message });
   }
 }

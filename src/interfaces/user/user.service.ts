@@ -222,7 +222,7 @@ export class UserService {
    */
   async register(registerUserDto: RegisterUserDto) {
     const userInfo = await this.userRepository.findOneBy({ username: registerUserDto.username });
-    if (userInfo) throw new BusinessException.throwUserExists();
+    if (userInfo) throw BusinessException.throwUserExists();
 
     const user = new User();
     user.username = registerUserDto.username;
@@ -243,14 +243,12 @@ export class UserService {
   async findAll(queryUserDto: QueryUserDto) {
     const { username = '', name, email, phone, currPage = 1, pageSize = 10 } = queryUserDto;
 
-    const qb = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.username like :username', { username: `%${username}%` })
-      .andWhere(':name IS NULL or user.name like :name', { name: isEmpty(name) ? null : `%${name}%` })
-      .andWhere(':email IS NULL or user.email like :email', { email: isEmpty(email) ? null : `%${email}%` })
-      .andWhere(':phone IS NULL or user.phone like :phone', { phone: isEmpty(phone) ? null : `%${phone}%` })
-      .leftJoinAndSelect('user.feishu', 'feishu')
-      .orderBy('user.id', 'DESC');
+    const qb = this.userRepository.createQueryBuilder('user');
+    if (username) qb.andWhere('user.username like :username', { username: `%${username}%` });
+    if (name) qb.andWhere('user.name like :name', { name: `%${name}%` });
+    if (email) qb.andWhere('user.email like :email', { email: `%${email}%` });
+    if (phone) qb.andWhere('user.phone like :phone', { phone: `%${phone}%` });
+    qb.leftJoinAndSelect('user.feishu', 'feishu').orderBy('user.id', 'DESC');
 
     const res: Record<string, unknown> = { currPage, pageSize };
     res.total = await qb.getCount();
@@ -387,6 +385,8 @@ export class UserService {
     const data = await this.findById(id);
 
     isUserNotFound(data);
+    this.roleUserService.userBindRoles(id, []);
+    this.userUserGroupService.userBindUserGroups(id, []);
     await this.userRepository.delete(id);
 
     return '删除成功';
